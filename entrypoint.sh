@@ -18,12 +18,37 @@ if [ ! -e $image_path ]; then
 fi
 
 qemu-img info $image_path
-image_size_in_bytes=$(qemu-img info --output json $image_path | grep "virtual-size" | awk '{print $2}' | sed 's/,//')
-if [[ "$(($image_size_in_bytes % ($GIB_IN_BYTES * 2)))" != "0" ]]; then
-  new_size_in_gib=$((($image_size_in_bytes / ($GIB_IN_BYTES * 2) + 1) * 2))
-  echo "Rounding image size up to ${new_size_in_gib}GiB so it's a multiple of 2GiB..."
-  qemu-img resize $image_path "${new_size_in_gib}G"
+# image_size_in_bytes=$(qemu-img info --output json $image_path | grep "virtual-size" | awk '{print $2}' | sed 's/,//')
+# if [[ "$(($image_size_in_bytes % ($GIB_IN_BYTES * 2)))" != "0" ]]; then
+#   new_size_in_gib=$((($image_size_in_bytes / ($GIB_IN_BYTES * 2) + 1) * 2))
+#   echo "Rounding image size up to ${new_size_in_gib}GiB so it's a multiple of 2GiB..."
+#   qemu-img resize $image_path "${new_size_in_gib}G"
+# fi
+
+# # image_size_in_bytes=$(qemu-img info --output json "$image_path" | grep '"virtual-size"' | awk -F ': ' '{print $2}' | tr -d ', ')
+# image_size_in_bytes=$(qemu-img info "$image_path" | awk '/virtual size/ { gsub(/[\(\)bytes,]/,""); print $4 }')
+# if (( image_size_in_bytes % (GIB_IN_BYTES * 2) != 0 )); then
+#   new_size_in_gib=$(( (image_size_in_bytes / (GIB_IN_BYTES * 2) + 1) * 2 ))
+#   echo "Rounding image size up to ${new_size_in_gib}GiB so it's a multiple of 2GiB..."
+#   qemu-img resize "$image_path" "${new_size_in_gib}G"
+# fi
+
+qemu-img info "$image_path"
+
+# Extract just the byte count from qemu-img info
+image_size_in_bytes=$(qemu-img info "$image_path" | awk '/virtual size/ { gsub(/[\(\)bytes,]/,""); print $4 }')
+
+# Remainder (is image size multiple of 2 GiB?)
+rem=$(expr "$image_size_in_bytes" % $(expr $GIB_IN_BYTES \* 2))
+
+if [ "$rem" -ne 0 ]; then
+    # Calculate the next multiple of 2 GiB in GiB units
+    div=$(expr "$image_size_in_bytes" / $(expr $GIB_IN_BYTES \* 2))
+    new_size_in_gib=$(expr \( $div + 1 \) \* 2)
+    echo "Rounding image size up to ${new_size_in_gib}GiB so it's a multiple of 2GiB..."
+    qemu-img resize "$image_path" "${new_size_in_gib}G"
 fi
+
 
 if [ "${target}" = "pi1" ]; then
   emulator=qemu-system-arm

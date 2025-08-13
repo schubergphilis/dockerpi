@@ -19,20 +19,32 @@ RUN gpg --verify "${QEMU_TARBALL}.sig" "${QEMU_TARBALL}"
 
 RUN # Extract source tarball
 RUN apt-get -y install pkg-config
+RUN apt-get update && apt-get install -y xz-utils # added
 RUN tar xvf "${QEMU_TARBALL}"
 
 RUN # Build source
 # These seem to be the only deps actually required for a successful  build
-RUN apt-get -y install python build-essential libglib2.0-dev libpixman-1-dev ninja-build
+#RUN apt-get -y install python build-essential libglib2.0-dev libpixman-1-dev ninja-build
+RUN apt-get -y install python3 python-is-python3 build-essential libglib2.0-dev libpixman-1-dev ninja-build
+RUN apt-get -y install python3-setuptools
 # These don't seem to be required but are specified here: https://wiki.qemu.org/Hosts/Linux
 RUN apt-get -y install libfdt-dev zlib1g-dev
 # Not required or specified anywhere but supress build warnings
 RUN apt-get -y install flex bison
-RUN "qemu-${QEMU_VERSION}/configure" --static --target-list=arm-softmmu,aarch64-softmmu
+# RUN "qemu-${QEMU_VERSION}/configure" --static --target-list=arm-softmmu,aarch64-softmmu
+RUN apt-get install -y qemu-utils
+RUN "./qemu-${QEMU_VERSION}/configure" --target-list=arm-softmmu,aarch64-softmmu
 RUN make -j$(nproc)
 
 RUN # Strip the binary, this gives a substantial size reduction!
 RUN strip "arm-softmmu/qemu-system-arm" "aarch64-softmmu/qemu-system-aarch64" "qemu-img"
+
+RUN apt-get install -y qemu-system-arm qemu-system-aarch64 qemu-utils
+RUN qemu-system-aarch64 --version
+RUN qemu-img --version
+
+RUN /usr/bin/qemu-system-aarch64 --version
+
 
 
 # Build stage for fatcat
@@ -59,26 +71,36 @@ RUN cmake fatcat-* -DCMAKE_CXX_FLAGS='-static'
 RUN make -j$(nproc)
 
 
+
 # Build the dockerpi VM image
-FROM busybox:1.31 AS dockerpi-vm
+FROM debian:stable-slim AS dockerpi-vm
 LABEL maintainer="Luke Childs <lukechilds123@gmail.com>"
 ARG RPI_KERNEL_URL="https://github.com/dhruvvyas90/qemu-rpi-kernel/archive/afe411f2c9b04730bcc6b2168cdc9adca224227c.zip"
 ARG RPI_KERNEL_CHECKSUM="295a22f1cd49ab51b9e7192103ee7c917624b063cc5ca2e11434164638aad5f4"
 
-COPY --from=qemu-builder /qemu/arm-softmmu/qemu-system-arm /usr/local/bin/qemu-system-arm
-COPY --from=qemu-builder /qemu/aarch64-softmmu/qemu-system-aarch64 /usr/local/bin/qemu-system-aarch64
-COPY --from=qemu-builder /qemu/qemu-img /usr/local/bin/qemu-img
-COPY --from=fatcat-builder /fatcat/fatcat /usr/local/bin/fatcat
+# COPY --from=qemu-builder /qemu/arm-softmmu/qemu-system-arm /usr/local/bin/qemu-system-arm
+# # COPY --from=qemu-builder /qemu/aarch64-softmmu/qemu-system-aarch64 /usr/local/bin/qemu-system-aarch64
+# COPY --from=qemu-builder /usr/bin/qemu-system-aarch64 /usr/local/bin/qemu-system-aarch64
+# COPY --from=qemu-builder /qemu/qemu-img /usr/local/bin/qemu-img
+# COPY --from=fatcat-builder /fatcat/fatcat /usr/local/bin/fatcat
+RUN apt-get update -y
+RUN apt-get install -y qemu-system-arm qemu-system-aarch64 qemu-utils
+RUN apt-get install -y unzip
+
+# RUN ls /usr/local/bin/qemu-system-aarch64
+# RUN du -h /usr/local/bin/qemu-system-aarch64
+RUN qemu-system-aarch64 --version
+
 
 ADD $RPI_KERNEL_URL /tmp/qemu-rpi-kernel.zip
 
 RUN cd /tmp && \
-    echo "$RPI_KERNEL_CHECKSUM  qemu-rpi-kernel.zip" | sha256sum -c && \
-    unzip qemu-rpi-kernel.zip && \
-    mkdir -p /root/qemu-rpi-kernel && \
-    cp qemu-rpi-kernel-*/kernel-qemu-4.19.50-buster /root/qemu-rpi-kernel/ && \
-    cp qemu-rpi-kernel-*/versatile-pb.dtb /root/qemu-rpi-kernel/ && \
-    rm -rf /tmp/*
+  echo "$RPI_KERNEL_CHECKSUM  qemu-rpi-kernel.zip" | sha256sum -c && \
+  unzip qemu-rpi-kernel.zip && \
+  mkdir -p /root/qemu-rpi-kernel && \
+  cp qemu-rpi-kernel-*/kernel-qemu-4.19.50-buster /root/qemu-rpi-kernel/ && \
+  cp qemu-rpi-kernel-*/versatile-pb.dtb /root/qemu-rpi-kernel/ && \
+  rm -rf /tmp/*
 
 VOLUME /sdcard
 
@@ -88,10 +110,12 @@ ENTRYPOINT ["./entrypoint.sh"]
 
 # Build the dockerpi image
 # It's just the VM image with a compressed Raspbian filesystem added
-FROM dockerpi-vm as dockerpi
+FROM dockerpi-vm AS dockerpi
 LABEL maintainer="Luke Childs <lukechilds123@gmail.com>"
 ARG FILESYSTEM_IMAGE_URL="http://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-09-30/2019-09-26-raspbian-buster-lite.zip"
 ARG FILESYSTEM_IMAGE_CHECKSUM="a50237c2f718bd8d806b96df5b9d2174ce8b789eda1f03434ed2213bbca6c6ff"
+
+
 
 ADD $FILESYSTEM_IMAGE_URL /filesystem.zip
 
