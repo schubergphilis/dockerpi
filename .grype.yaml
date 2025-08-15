@@ -1,0 +1,58 @@
+---
+ignore:
+  - vulnerability: CVE-2022-3872
+    package:
+      name: qemu-system-arm
+      version: go1.24.4
+  - vulnerability: CVE-2025-47907
+    package:
+      name: stdlib
+      version: go1.24.5
+  - vulnerability: CVE-2022-3872
+    package:
+      name: qemu-system-arm
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2022-3872
+    package:
+      name: qemu-system-common
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2022-3872
+    package:
+      name: qemu-system-data
+      version: 1:10.0.2+ds-2
+  - vulnerability: CVE-2022-3872
+    package:
+      name: qemu-utils
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2024-6519
+    package:
+      name: qemu-system-arm
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2024-6519
+    package:
+      name: qemu-system-common
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2024-6519
+    package:
+      name: qemu-system-data
+      version: 1:10.0.2+ds-2
+  - vulnerability: CVE-2024-6519
+    package:
+      name: qemu-utils
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2023-1386
+    package:
+      name: qemu-system-arm
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2023-1386
+    package:
+      name: qemu-system-common
+      version: 1:10.0.2+ds-2+b1
+  - vulnerability: CVE-2023-1386
+    package:
+      name: qemu-system-data
+      version: 1:10.0.2+ds-2
+  - vulnerability: CVE-2023-1386
+    package:
+      name: qemu-utils
+      version: 1:10.0.2+ds-2+b1
