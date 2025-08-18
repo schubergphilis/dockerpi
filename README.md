@@ -19,7 +19,11 @@ virtual machine environment.
 ## Usage
 
 ```zsh
-docker run -it -v ${PWD}/raspberry-pi.img:/sdcard/filesystem.img dockerpi
+docker run \
+  --user root \
+  -it \
+  -v ${PWD}/raspberry-pi.img:/sdcard/filesystem.img \
+    ghcr.io/schubergphilis/dockerpi:v0.1.0
 ```
 
 By default all filesystem changes will be lost on shutdown. You can persist
